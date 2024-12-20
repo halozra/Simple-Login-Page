@@ -108,3 +108,32 @@ button {
     justify-content: center;
     gap: 10px;
 }
+
+.secret-main{
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.secret{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.secret form button{
+    margin-top: 10px;
+    background-color: #e64a19;
+}
+
+.secret form button:hover{
+    background-color: #c5431b;
+}
+
+.form-secret form input{
+    width: 100%;
+    height: 30px;
+    text-align: center;
+}

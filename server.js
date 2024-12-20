@@ -2,6 +2,7 @@ import express from "express"
 import bodyParser from "body-parser"
 import pool from "./db.js"
 import bcrypt from "bcrypt"
+import cookieParser from "cookie-parser"
 
 const app = express()
 const PEPPER = "iloveu3000years"
@@ -9,11 +10,18 @@ const PEPPER = "iloveu3000years"
 app.set("views engine", "ejs")
 app.use(express.static("public"))
 app.use(bodyParser.urlencoded({extended:false}))
+app.use(cookieParser())
+
 
 
 //  GET ROUTE
 app.get("/", (req,res)=>{
-    res.render("index.ejs")
+
+    if(req.cookies.userEmail){
+        res.redirect("/secret")
+    }else{
+        res.render("index.ejs")
+    }
 })
 
 app.get("/login", (req, res)=>{
@@ -23,6 +31,31 @@ app.get("/login", (req, res)=>{
 app.get("/regis", (req, res)=>{
     res.render("regis.ejs")
 })
+
+app.get("/secret", async (req, res) => {
+    try {
+        if (req.cookies.userEmail) {
+            // Ambil data dari database berdasarkan email
+            const result = await pool.query("SELECT * FROM users WHERE email=$1", [req.cookies.userEmail]);
+
+            // Jika data ditemukan
+            if (result.rows.length > 0) {
+                res.render("secret.ejs", { data: result.rows[0]});
+            } else {
+                // Jika tidak ada data yang cocok di database
+                res.clearCookie("userEmail"); // Hapus cookie
+                res.redirect("/login"); // Redirect ke login
+            }
+        } else {
+            // Jika cookie tidak ditemukan
+            res.redirect("/login");
+        }
+    } catch (error) {
+        console.error("Error saat mengambil data secret:", error.message);
+        res.status(500).send("Ada kesalahan pada server.");
+    }
+});
+
 
 // POST
 
@@ -76,7 +109,13 @@ app.post("/login", async (req, res)=>{
 
         // check validation
         if(isMatch){
-            res.status(200).json("Berhasil login")
+            res.cookie("userEmail",email,{
+                maxAge: 3600000,
+                httpOnly:true,
+                secure:false,
+                sameSite: "lax"
+            })
+            res.redirect("/secret")
         }else{
             res.status(401).send("password salah")
         }
@@ -87,6 +126,45 @@ app.post("/login", async (req, res)=>{
 
 
 })
+
+app.post("/secret/logout", (req,res)=>{
+    res.clearCookie("userEmail")
+    res.redirect("/login")
+
+})
+
+app.post("/secret/post", async(req,res)=>{
+    try {
+        const {secret} = req.body
+        await pool.query("UPDATE users SET secret=$1 WHERE email=$2",[secret,req.cookies.userEmail])
+        res.redirect("/secret")
+    } catch (error) {
+        req.status(500).json("failder add secret")
+    }
+
+})
+
+app.get("/secret/edit", async (req, res) => {
+    try {
+        const data = await pool.query("SELECT * FROM users WHERE email=$1", [req.cookies.userEmail]);
+        res.render("edit.ejs", { data: data.rows[0]});
+    } catch (error) {
+        console.error("Error saat masuk mode edit:", error.message);
+        res.status(500).send("Terjadi kesalahan pada server.");
+    }
+});
+
+app.post("/secret/update", async (req, res) => {
+    try {
+        const { secret } = req.body;
+        await pool.query("UPDATE users SET secret=$1 WHERE email=$2", [secret, req.cookies.userEmail]);
+        res.redirect("/secret");
+    } catch (error) {
+        console.error("Error saat memperbarui secret:", error.message);
+        res.status(500).send("Terjadi kesalahan pada server.");
+    }
+});
+
 
 const port = 3000;
 app.listen(port ,()=>{
