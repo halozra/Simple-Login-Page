@@ -1,0 +1,20 @@
+{
+  "name": "loginsimple",
+  "version": "1.0.0",
+  "main": "db.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "Halozra",
+  "license": "ISC",
+  "description": "It simple login page",
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}
